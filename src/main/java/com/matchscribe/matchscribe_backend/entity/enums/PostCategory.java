@@ -1,5 +1,10 @@
 package com.matchscribe.matchscribe_backend.entity.enums;
 
-public class PostCategory {
+public enum PostCategory {
+	preview,
+	review,
+	news,
+	article,
+	opinion
 
 }
