@@ -1,5 +1,9 @@
 package com.matchscribe.matchscribe_backend.entity.enums;
 
-public class JobStatus {
+public enum  JobStatus {
+	queued,
+	running,
+	success,
+	error
 
 }

@@ -1,5 +1,5 @@
 package com.matchscribe.matchscribe_backend.repository;
 
-public class LeagueRepository {
+public interface LeagueRepository {
 
 }

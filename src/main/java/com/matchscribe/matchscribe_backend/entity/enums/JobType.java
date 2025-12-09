@@ -1,5 +1,8 @@
 package com.matchscribe.matchscribe_backend.entity.enums;
 
-public class JobType {
+public enum JobType {
+	MATCH_PREVIEW,
+	MATCH_REVIEW,
+	GENERIC_ARTICLE
 
 }

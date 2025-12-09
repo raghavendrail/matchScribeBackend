@@ -1,5 +1,9 @@
 package com.matchscribe.matchscribe_backend.entity.enums;
 
-public class MatchResultType {
+public enum MatchResultType {
+	unknown,
+	normal,
+	tie,
+	no_result
 
 }
