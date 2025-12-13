@@ -1,0 +1,5 @@
+sportsapi:
+  base-url: https://cricbuzz-cricket.p.rapidapi.com/matches/v1/upcoming 
+  host: cricbuzz-cricket.p.rapidapi.com     
+  api-key: b301c9a290msh03c7934010ada33p1e01fbjsnc9a7a909ef00               
+  timeout-ms: 5000

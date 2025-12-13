@@ -1,22 +1,16 @@
 package com.matchscribe.matchscribe_backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "leagues")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class League {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "sl")   
+    private Long sl;
 
     @Column(name = "sport_id", nullable = false)
     private Long sportId;
@@ -24,20 +18,32 @@ public class League {
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
-    @Column(name = "short_name", length = 100)
-    private String shortName;
-
-    @Column(name = "slug", nullable = false, length = 200, unique = true)
-    private String slug;
-
-    @Column(name = "country", length = 100)
-    private String country;
+    
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    public League() {}
+
+    // getters / setters — note changed method names
+    public Long getSl() { return sl; }
+    public void setSl(Long sl) { this.sl = sl; }
+
+    public Long getSportId() { return sportId; }
+    public void setSportId(Long sportId) { this.sportId = sportId; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     @PrePersist
     protected void onCreate() {
