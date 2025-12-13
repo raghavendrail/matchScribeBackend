@@ -1,5 +1,10 @@
 package com.matchscribe.matchscribe_backend.service;
 
-public class MatchService {
+import com.matchscribe.matchscribe_backend.dto.match.MatchDto;
+
+public interface MatchService {
+	void importUpcomingMatchesFromSportsApi();
+	MatchDto getMatchById(Long matchId);
+	Iterable<MatchDto> getAllMatches();
 
 }

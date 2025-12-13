@@ -1,5 +1,13 @@
 package com.matchscribe.matchscribe_backend.repository;
 
-public interface VenueRepository {
+import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.matchscribe.matchscribe_backend.entity.Venue;
+
+public interface VenueRepository extends JpaRepository<Venue, Long> {
+	 boolean existsById(Long id);
+	 Optional<Venue> findByVenueId(Long venueId);
+		
 }
