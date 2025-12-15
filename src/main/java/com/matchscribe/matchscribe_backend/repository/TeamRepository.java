@@ -7,5 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TeamRepository extends JpaRepository<Team, Long> {
 	boolean existsByTeamId(Long teamId);
 	Optional<Team> findByTeamId(Long teamId);
+	Optional<Team> findBySl(Long teamId);
 
 }

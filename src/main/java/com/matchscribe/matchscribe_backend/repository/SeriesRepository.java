@@ -10,4 +10,5 @@ public interface SeriesRepository extends JpaRepository<Series, Long>{
 //boolean exists = SeriesRepository.existsBySeriesId(seriesWrapper.path("seriesAdWrapper").path("seriesId").asInt());
 	boolean existsBySeriesId(Long seriesId);
 	 Optional<Series> findBySeriesId(Long seriesId);
+	 Optional<Series> findBySl(Long seriesId);
 }

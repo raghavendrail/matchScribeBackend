@@ -9,5 +9,7 @@ import com.matchscribe.matchscribe_backend.entity.Venue;
 public interface VenueRepository extends JpaRepository<Venue, Long> {
 	 boolean existsById(Long id);
 	 Optional<Venue> findByVenueId(Long venueId);
+	 Optional<Venue> findBySl(Long venueId);
+	 
 		
 }

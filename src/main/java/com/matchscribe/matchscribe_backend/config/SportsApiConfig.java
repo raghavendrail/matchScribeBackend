@@ -1,58 +1,67 @@
 package com.matchscribe.matchscribe_backend.config;
 
+import java.util.Map;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 @ConfigurationProperties(prefix = "sportsapi")
 public class SportsApiConfig {
-    
-    private String baseUrl;
-    private String host;
-    private String apiKey;
-    private int timeoutMs;
 
-    // Getters
-    public String getBaseUrl() {
-        return baseUrl;
-    }
+	private Map<String, String> baseUrl;
+	private String host;
+	private String apiKey;
+	private int timeoutMs;
 
-    public String getHost() {
-        return host;
-    }
+	// Getters
+	public Map<String, String> getBaseUrl() {
+		return baseUrl;
+	}
 
-    public String getApiKey() {
-        return apiKey;
-    }
+	public String getHost() {
+		return host;
+	}
 
-    public int getTimeoutMs() {
-        return timeoutMs;
-    }
+	public String getApiKey() {
+		return apiKey;
+	}
 
-    // Setters
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-    }
+	public int getTimeoutMs() {
+		return timeoutMs;
+	}
 
-    public void setHost(String host) {
-        this.host = host;
-    }
+	// Setters
+	public void setBaseUrl(Map<String, String> baseUrl) {
+		this.baseUrl = baseUrl;
+	}
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+	public void setHost(String host) {
+		this.host = host;
+	}
 
-    public void setTimeoutMs(int timeoutMs) {
-        this.timeoutMs = timeoutMs;
-    }
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
-    @Override
-    public String toString() {
-        return "SportsApiConfig{" +
-                "baseUrl='" + baseUrl + '\'' +
-                ", host='" + host + '\'' +
-                ", apiKey='[PROTECTED]'" +
-                ", timeoutMs=" + timeoutMs +
-                '}';
-    }
+	public void setTimeoutMs(int timeoutMs) {
+		this.timeoutMs = timeoutMs;
+	}
+
+	@Override
+	public String toString() {
+		return "SportsApiConfig{" + "baseUrl='" + baseUrl + '\'' + ", host='" + host + '\'' + ", apiKey='[PROTECTED]'"
+				+ ", timeoutMs=" + timeoutMs + '}';
+	}
+
+	public String getUpcomingMatchesUrl() {
+		return baseUrl.get("matches-upcoming");
+	}
+
+	public String getTeamPlayersUrl(int teamId) {
+		return baseUrl.get("team-players").replace("{teamId}", String.valueOf(teamId));
+	}
+
+	public String getTeamUrl(int matchId, int teamId) {
+		return baseUrl.get("team-info").replace("{matchId}", String.valueOf(matchId)).replace("{teamId}",
+				String.valueOf(teamId));
+	}
 }
