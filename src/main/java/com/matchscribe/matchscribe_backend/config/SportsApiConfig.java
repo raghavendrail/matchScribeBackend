@@ -64,4 +64,9 @@ public class SportsApiConfig {
 		return baseUrl.get("team-info").replace("{matchId}", String.valueOf(matchId)).replace("{teamId}",
 				String.valueOf(teamId));
 	}
+
+	public String getCompletedMatchesUrl(int matchId) {
+		return baseUrl.get("matches-completed").replace("{matchId}", String.valueOf(matchId));
+	}
+
 }

@@ -51,4 +51,9 @@ public class MatchAdminController {
 		return ResponseEntity.ok(dtos);
 	}
 
+	@PostMapping("/sync/recent")
+	public ImportResult syncRecentMatches() {
+		return matchService.updateRecentMatchesFromDb();
+	}
+
 }

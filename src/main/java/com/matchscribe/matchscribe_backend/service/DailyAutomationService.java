@@ -1,5 +1,6 @@
 package com.matchscribe.matchscribe_backend.service;
 
-public class DailyAutomationService {
+public interface DailyAutomationService {
+	void runDailyAutomation();
 
 }

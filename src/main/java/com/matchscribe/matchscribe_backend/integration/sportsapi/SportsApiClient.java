@@ -45,4 +45,8 @@ public class SportsApiClient {
 		return callSportsApi(props.getTeamUrl(matchId, teamId));
 	}
 
+	public String getCompletedMatches(int matchId) {
+		return callSportsApi(props.getCompletedMatchesUrl(matchId));
+	}
+
 }

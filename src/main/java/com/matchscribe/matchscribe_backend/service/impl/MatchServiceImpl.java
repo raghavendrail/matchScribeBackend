@@ -475,4 +475,88 @@ public class MatchServiceImpl implements MatchService {
 		}).toList();
 	}
 
+	@Override
+	@Transactional
+	public ImportResult updateRecentMatchesFromDb() {
+
+		ImportResult result = new ImportResult();
+
+		OffsetDateTime fromDate = OffsetDateTime.now().minusDays(7);
+
+		List<Match> matches = matchRepository.findMatchesFromDate(fromDate);
+
+		if (matches.isEmpty()) {
+			result.addWarning("NO_MATCHES_FOUND_LAST_7_DAYS");
+			return result;
+		}
+
+		for (Match match : matches) {
+
+			result.incrementTotal();
+
+			try {
+				updateMatchFromMatchCenter(match);
+				result.incrementImported();
+			} catch (Exception ex) {
+				result.incrementSkipped();
+				result.addError("MATCH_UPDATE_FAILED [matchId=" + match.getMatchId() + "] " + ex.getMessage());
+			}
+		}
+
+		return result;
+	}
+
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void updateMatchFromMatchCenter(Match match) throws Exception {
+
+		String json = sportsApiClient.getCompletedMatches(match.getMatchId().intValue());
+		JsonNode root = objectMapper.readTree(json);
+
+		// ----------------------------
+		// Basic Status
+		// ----------------------------
+		String state = root.path("state").asText("");
+		String status = root.path("status").asText("");
+
+		if ("Complete".equalsIgnoreCase(state)) {
+			match.setStatus(MatchStatus.finished.toString());
+		} else {
+			match.setStatus(MatchStatus.live.toString());
+		}
+
+		// ----------------------------
+		// Result
+		// ----------------------------
+		String shortStatus = root.path("shortstatus").asText(null);
+		if (shortStatus != null && !shortStatus.isBlank()) {
+			match.setResultType(shortStatus);
+		}
+
+		// ----------------------------
+		// Winner Team
+		// ----------------------------
+		long winnerApiTeamId = root.path("winningteamid").asLong(0);
+		if (winnerApiTeamId > 0) {
+			teamRepository.findByTeamId(winnerApiTeamId).ifPresent(t -> match.setWinnerTeamId(t.getSl()));
+		}
+
+		// ----------------------------
+		// Start / End Date (update safe)
+		// ----------------------------
+		if (root.has("startdate")) {
+			match.setStartDatetime(epochToHuman(root.path("startdate").asLong()));
+		}
+
+		if (root.has("enddate")) {
+			match.setEndDatetime(epochToHuman(root.path("enddate").asLong()));
+		}
+
+		// ----------------------------
+		// Store full payload
+		// ----------------------------
+		match.setExtraInfo(root);
+
+		matchRepository.save(match);
+	}
+
 }
