@@ -49,4 +49,12 @@ public class SportsApiClient {
 		return callSportsApi(props.getCompletedMatchesUrl(matchId));
 	}
 
+	public String getPlayerBattingStats(int playerId) {
+		return callSportsApi(props.getBattingStatsUrl(playerId));
+	}
+
+	public String getPlayerBowlingStats(int playerId) {
+		return callSportsApi(props.getBowlingStatsUrl(playerId));
+	}
+
 }

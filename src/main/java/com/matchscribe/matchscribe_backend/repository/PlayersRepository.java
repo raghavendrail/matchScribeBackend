@@ -12,4 +12,6 @@ public interface PlayersRepository extends JpaRepository<Players, Long> {
 
 	List<Players> findBySlIn(List<Long> sls);
 
+	Optional<Players> findBySl(Long player);
+
 }

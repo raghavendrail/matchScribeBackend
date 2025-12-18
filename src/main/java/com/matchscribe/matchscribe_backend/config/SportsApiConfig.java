@@ -69,4 +69,12 @@ public class SportsApiConfig {
 		return baseUrl.get("matches-completed").replace("{matchId}", String.valueOf(matchId));
 	}
 
+	public String getBattingStatsUrl(int playerId) {
+		return baseUrl.get("player-batting-stats").replace("{playerId}", String.valueOf(playerId));
+	}
+
+	public String getBowlingStatsUrl(int playerId) {
+		return baseUrl.get("player-bowling-stats").replace("{playerId}", String.valueOf(playerId));
+	}
+
 }

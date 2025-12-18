@@ -12,4 +12,6 @@ public interface TeamPlayersRepository extends JpaRepository<TeamPlayers, Long> 
 
 	List<TeamPlayers> findByTeamSl(Long teamSl);
 
+	TeamPlayers findByPlayerSl(Long sl);
+
 }

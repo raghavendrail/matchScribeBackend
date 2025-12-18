@@ -22,6 +22,8 @@ import com.matchscribe.matchscribe_backend.dto.match.MatchDto;
 import com.matchscribe.matchscribe_backend.dto.team.PlayerDto;
 import com.matchscribe.matchscribe_backend.entity.League;
 import com.matchscribe.matchscribe_backend.entity.Match;
+import com.matchscribe.matchscribe_backend.entity.PlayerCareerBattingStats;
+import com.matchscribe.matchscribe_backend.entity.PlayerCareerBowlingStats;
 import com.matchscribe.matchscribe_backend.entity.Players;
 import com.matchscribe.matchscribe_backend.entity.Series;
 import com.matchscribe.matchscribe_backend.entity.Team;
@@ -29,7 +31,10 @@ import com.matchscribe.matchscribe_backend.entity.TeamPlayers;
 import com.matchscribe.matchscribe_backend.entity.Venue;
 import com.matchscribe.matchscribe_backend.entity.enums.MatchResultType;
 import com.matchscribe.matchscribe_backend.entity.enums.MatchStatus;
+import com.matchscribe.matchscribe_backend.entity.enums.PlayerRoleType;
 import com.matchscribe.matchscribe_backend.integration.sportsapi.SportsApiClient;
+import com.matchscribe.matchscribe_backend.repository.BattingStatsRepository;
+import com.matchscribe.matchscribe_backend.repository.BowlingStatsRepository;
 import com.matchscribe.matchscribe_backend.repository.LeagueRepository;
 import com.matchscribe.matchscribe_backend.repository.MatchRepository;
 import com.matchscribe.matchscribe_backend.repository.PlayersRepository;
@@ -56,11 +61,14 @@ public class MatchServiceImpl implements MatchService {
 	private final TeamService teamService;
 	private final TeamPlayersRepository teamPlayersRepository;
 	private final PlayersRepository playersRepository;
+	private final BattingStatsRepository battingStatsRepository;
+	private final BowlingStatsRepository bowlingStatsRepository;
 
 	public MatchServiceImpl(SportsApiClient sportsApiClient, ObjectMapper objectMapper,
 			LeagueRepository leagueRepository, TeamRepository teamRepository, VenueRepository venueRepository,
 			MatchRepository matchRepository, SeriesRepository seriesRepository, TeamService teamService,
-			TeamPlayersRepository teamPlayersRepository, PlayersRepository playersRepository) {
+			TeamPlayersRepository teamPlayersRepository, PlayersRepository playersRepository,
+			BattingStatsRepository battingStatsRepository, BowlingStatsRepository bowlingStatsRepository) {
 		this.sportsApiClient = sportsApiClient;
 		this.objectMapper = objectMapper;
 		this.leagueRepository = leagueRepository;
@@ -71,6 +79,8 @@ public class MatchServiceImpl implements MatchService {
 		this.teamService = teamService;
 		this.teamPlayersRepository = teamPlayersRepository;
 		this.playersRepository = playersRepository;
+		this.battingStatsRepository = battingStatsRepository;
+		this.bowlingStatsRepository = bowlingStatsRepository;
 	}
 
 	@Override
@@ -178,12 +188,14 @@ public class MatchServiceImpl implements MatchService {
 		// 🔹 Player import is OPTIONAL
 		try {
 			teamService.getTeamPlayers(team1.getSl(), team1.getTeamId(), matchId);
+			processUpcomingMatchPlayers(team1.getSl());
 		} catch (Exception ex) {
 			result.addWarning("PLAYER_IMPORT_FAILED teamId=" + team1.getTeamId() + " matchId=" + matchId);
 		}
 
 		try {
 			teamService.getTeamPlayers(team2.getSl(), team2.getTeamId(), matchId);
+			processUpcomingMatchPlayers(team2.getSl());
 		} catch (Exception ex) {
 			result.addWarning("PLAYER_IMPORT_FAILED teamId=" + team2.getTeamId() + " matchId=" + matchId);
 		}
@@ -557,6 +569,254 @@ public class MatchServiceImpl implements MatchService {
 		match.setExtraInfo(root);
 
 		matchRepository.save(match);
+	}
+
+	@Transactional
+	public void processUpcomingMatchPlayers(Long teamSl) {
+
+		List<TeamPlayers> teamPlayers = teamPlayersRepository.findByTeamSl(teamSl);
+
+		for (TeamPlayers tp : teamPlayers) {
+
+			Long playerSl = tp.getPlayerSl();
+			Optional<Players> optplayer = playersRepository.findBySl(playerSl);
+			if (optplayer == null) {
+				continue;
+			}
+			Players player = optplayer.get();
+			Long playerId = player.getPlayerId();
+
+			PlayerRoleType roleType = mapRole(tp.getRole());
+
+			if (roleType == null) {
+				continue;
+			}
+
+			switch (roleType) {
+
+			case BATSMAN:
+			case WK_BATSMAN:
+				fetchAndSaveBattingStats(playerId);
+				break;
+
+			case BOWLER:
+				fetchAndSaveBowlingStats(playerId);
+				break;
+
+			case BATTING_ALLROUNDER:
+			case BOWLING_ALLROUNDER:
+				fetchAndSaveBattingStats(playerId);
+				fetchAndSaveBowlingStats(playerId);
+				break;
+			}
+		}
+	}
+
+	public PlayerRoleType mapRole(String role) {
+		if (role == null) {
+			return null;
+		}
+
+		switch (role.toLowerCase()) {
+		case "batsman":
+		case "wk-batsman":
+			return PlayerRoleType.BATSMAN;
+
+		case "bowler":
+			return PlayerRoleType.BOWLER;
+
+		case "batting allrounder":
+			return PlayerRoleType.BATTING_ALLROUNDER;
+
+		case "bowling allrounder":
+			return PlayerRoleType.BOWLING_ALLROUNDER;
+
+		default:
+			return null;
+		}
+	}
+
+	public void fetchAndSaveBattingStats(Long playerId) {
+
+		String json = sportsApiClient.getPlayerBattingStats(playerId.intValue());
+
+		if (json == null || json.isEmpty()) {
+			return;
+		}
+		try {
+
+			JsonNode root = objectMapper.readTree(json);
+
+			JsonNode headers = root.get("headers"); // Test, ODI, T20, IPL
+			JsonNode values = root.get("values");
+
+			for (int col = 1; col < headers.size(); col++) {
+
+				String matchType = headers.get(col).asText();
+
+				PlayerCareerBattingStats stats = parseBattingStats(values, col);
+
+				// skip empty stats
+				if (stats == null) {
+					continue;
+				}
+				Optional<Players> playerOpt = playersRepository.findByPlayerId(playerId);
+				stats.setPlayerSl(playerOpt.get().getSl());
+				stats.setMatchType(matchType);
+				if (battingStatsRepository.existsByPlayerSlAndMatchType(playerOpt.get().getSl(), matchType)) {
+					continue;
+				}
+
+				battingStatsRepository.save(stats);
+			}
+		} catch (Exception ex) {
+			// Log or handle exception as needed
+			ex.printStackTrace();
+		}
+	}
+
+	public void fetchAndSaveBowlingStats(Long playerId) {
+
+		String json = sportsApiClient.getPlayerBowlingStats(playerId.intValue());
+
+		if (json == null || json.isEmpty()) {
+			return;
+		}
+		try {
+
+			JsonNode root = objectMapper.readTree(json);
+
+			JsonNode headers = root.get("headers");
+			JsonNode values = root.get("values");
+
+			for (int col = 1; col < headers.size(); col++) {
+
+				String matchType = headers.get(col).asText();
+
+				PlayerCareerBowlingStats stats = parseBowlingStats(values, col);
+
+				if (stats == null) {
+					continue;
+				}
+				Optional<Players> player = playersRepository.findByPlayerId(playerId);
+				stats.setPlayerSl(player.get().getSl());
+				stats.setMatchType(matchType);
+				if (bowlingStatsRepository.existsByPlayerSlAndMatchType(player.get().getSl(), matchType)) {
+					continue;
+				}
+				bowlingStatsRepository.save(stats);
+			}
+		} catch (Exception ex) {
+			// Log or handle exception as needed
+			ex.printStackTrace();
+		}
+	}
+
+	private PlayerCareerBattingStats parseBattingStats(JsonNode values, int col) {
+
+		PlayerCareerBattingStats s = new PlayerCareerBattingStats();
+
+		for (JsonNode row : values) {
+
+			String key = row.get("values").get(0).asText();
+			String val = row.get("values").get(col).asText();
+
+			switch (key) {
+			case "Matches":
+				s.setMatches(parseInt(val));
+				break;
+			case "Innings":
+				s.setInnings(parseInt(val));
+				break;
+			case "Runs":
+				s.setRuns(parseInt(val));
+				break;
+			case "Balls":
+				s.setBalls(parseInt(val));
+				break;
+			case "Highest":
+				s.setHighestScore(parseInt(val));
+				break;
+			case "Average":
+				s.setAverage(parseDouble(val));
+				break;
+			case "SR":
+				s.setStrikeRate(parseDouble(val));
+				break;
+			case "Not Out":
+				s.setNotOuts(parseInt(val));
+				break;
+			case "Fours":
+				s.setFours(parseInt(val));
+				break;
+			case "Sixes":
+				s.setSixes(parseInt(val));
+				break;
+			}
+		}
+		return s;
+	}
+
+	private PlayerCareerBowlingStats parseBowlingStats(JsonNode values, int col) {
+
+		PlayerCareerBowlingStats s = new PlayerCareerBowlingStats();
+
+		for (JsonNode row : values) {
+
+			String key = row.get("values").get(0).asText();
+			String val = row.get("values").get(col).asText();
+
+			switch (key) {
+			case "Matches":
+				s.setMatches(parseInt(val));
+				break;
+			case "Innings":
+				s.setInnings(parseInt(val));
+				break;
+			case "Balls":
+				s.setBalls(parseInt(val));
+				break;
+			case "Runs":
+				s.setRuns(parseInt(val));
+				break;
+			case "Maidens":
+				s.setMaidens(parseInt(val));
+				break;
+			case "Wickets":
+				s.setWickets(parseInt(val));
+				break;
+			case "Avg":
+				s.setAverage(parseDouble(val));
+				break;
+			case "Eco":
+				s.setEconomy(parseDouble(val));
+				break;
+			case "SR":
+				s.setStrikeRate(parseDouble(val));
+				break;
+			case "BBI":
+				s.setBestBowlingInnings(val);
+				break;
+			case "BBM":
+				s.setBestBowlingMatch(val);
+				break;
+			}
+		}
+		return s;
+	}
+
+	private Integer parseInt(String val) {
+		if (val == null || val.equals("-") || val.equals("-/-")) {
+			return 0;
+		}
+		return Integer.parseInt(val);
+	}
+
+	private Double parseDouble(String val) {
+		if (val == null || val.equals("-") || val.equals("-/-")) {
+			return 0.0;
+		}
+		return Double.parseDouble(val);
 	}
 
 }
