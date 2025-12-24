@@ -9,9 +9,10 @@ public class PlayerDto {
 	public Long sl;
 	public Long playerId;
 	public String name;
+	public String role;
 	public String battingStyle;
 	public String bowlingStyle;
-	public String role;
+
 	public List<PlayerCareerBattingStats> careerBattingStats;
 	public List<PlayerCareerBowlingStats> careerBowlingStats;
 }

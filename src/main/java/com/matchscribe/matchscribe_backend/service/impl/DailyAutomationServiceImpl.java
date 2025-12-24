@@ -5,16 +5,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.matchscribe.matchscribe_backend.service.DailyAutomationService;
 import com.matchscribe.matchscribe_backend.service.MatchService;
+import com.matchscribe.matchscribe_backend.service.PostService;
 
 @Service
 public class DailyAutomationServiceImpl implements DailyAutomationService {
 
 	private final MatchService matchService;
-	// private final PostService postService;
+	private final PostService postService;
 
-	public DailyAutomationServiceImpl(MatchService matchService) {
+	public DailyAutomationServiceImpl(MatchService matchService, PostService postService) {
 		this.matchService = matchService;
-		// this.postService = postService;
+		this.postService = postService;
 	}
 
 	@Override
@@ -28,7 +29,7 @@ public class DailyAutomationServiceImpl implements DailyAutomationService {
 		matchService.updateRecentMatchesFromDb();
 
 		// 3. Generate placeholder posts for matches without content
-		// postService.generatePlaceholderPostsForUpcomingMatches();
+		postService.generatePostsForUpcomingMatches();
 
 		// 4. Archive old matches
 		// matchService.archiveOldMatches();

@@ -186,18 +186,11 @@ public class MatchServiceImpl implements MatchService {
 		Team team2 = getOrCreateTeam(info.path("team2"), league.getSl());
 
 		// 🔹 Player import is OPTIONAL
-		try {
-			teamService.getTeamPlayers(team1.getSl(), team1.getTeamId(), matchId);
-			processUpcomingMatchPlayers(team1.getSl());
-		} catch (Exception ex) {
-			result.addWarning("PLAYER_IMPORT_FAILED teamId=" + team1.getTeamId() + " matchId=" + matchId);
-		}
+		boolean team1Ok = importTeamAndPlayersOrFail(team1, matchId);
+		boolean team2Ok = importTeamAndPlayersOrFail(team2, matchId);
 
-		try {
-			teamService.getTeamPlayers(team2.getSl(), team2.getTeamId(), matchId);
-			processUpcomingMatchPlayers(team2.getSl());
-		} catch (Exception ex) {
-			result.addWarning("PLAYER_IMPORT_FAILED teamId=" + team2.getTeamId() + " matchId=" + matchId);
+		if (!team1Ok || !team2Ok) {
+			throw new RuntimeException("TEAM_PLAYER_IMPORT_FAILED matchId=" + matchId);
 		}
 
 		// 🔹 ALWAYS save match
@@ -221,6 +214,36 @@ public class MatchServiceImpl implements MatchService {
 	// ----------------------------------------------------
 	// HELPERS
 	// ----------------------------------------------------
+	private boolean importTeamAndPlayersOrFail(Team team, long matchId) {
+
+		// 1. Import team players (CRITICAL)
+		teamService.getTeamPlayers(team.getSl(), team.getTeamId(), matchId);
+
+		// 2. Validate teamPlayers table
+		List<TeamPlayers> mappings = teamPlayersRepository.findByTeamSl(team.getSl());
+
+		if (mappings.isEmpty()) {
+			throw new IllegalStateException("No team players found for teamSl=" + team.getSl());
+		}
+
+		// 3. Validate players exist
+		for (TeamPlayers tp : mappings) {
+			if (!playersRepository.existsById(tp.getPlayerSl())) {
+				throw new IllegalStateException("Player missing playerSl=" + tp.getPlayerSl());
+			}
+		}
+
+		// 4. Stats import is OPTIONAL (don’t fail match)
+		try {
+			processUpcomingMatchPlayers(team.getSl());
+		} catch (Exception e) {
+			// log only
+			System.err.println("Stats import failed for teamSl=" + team.getSl());
+		}
+
+		return true;
+	}
+
 	private League getOrCreateLeague(String name, ImportResult result) {
 		try {
 			return leagueRepository.findByName(name).orElseGet(() -> {

@@ -1,5 +1,11 @@
 package com.matchscribe.matchscribe_backend.service;
 
-public class TagService {
+import com.matchscribe.matchscribe_backend.entity.Tag;
 
+public interface TagService {
+	Tag getOrCreate(String name, String tagType);
+
+	void incrementUsage(Tag tag);
+
+	void decrementUsage(Tag tag);
 }
