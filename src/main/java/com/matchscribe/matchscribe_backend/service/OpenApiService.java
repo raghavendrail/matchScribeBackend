@@ -1,5 +1,7 @@
 package com.matchscribe.matchscribe_backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 public interface OpenApiService {
 	String generateTitle(String prompt);
 
@@ -32,5 +34,6 @@ public interface OpenApiService {
 	String generateFantasyTips(String matchPayload);
 
 	String generateFinalVerdict(String matchPayload);
+	String generateVenueDescription(JsonNode venueInfo, JsonNode statsInfo);
 
 }

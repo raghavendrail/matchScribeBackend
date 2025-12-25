@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.matchscribe.matchscribe_backend.config.OpenAiConfig;
 import com.matchscribe.matchscribe_backend.service.OpenApiService;
 
@@ -630,33 +631,73 @@ public class OpenApiServiceImpl implements OpenApiService {
 			return tags.toArray(new String[0]);
 		}).block();
 	}
+public List<String> generateTags(String content) {
 
-	public List<String> generateTags(String content) {
+    if (content == null || content.isBlank()) {
+        return List.of();
+    }
 
-		if (content == null || content.isBlank()) {
-			return List.of();
-		}
+    String prompt = """
+        You generate SEO-friendly NAVIGATION TAGS for a cricket match prediction website.
 
-		String prompt = """
-				You are generating SEO tags for a cricket content website.
+        Tags are NOT for decoration. 
+        They must help users navigate to specific pages.
 
-				Rules:
-				- Return ONLY tag names
-				- No sentences
-				- No numbering
-				- No hashtags
-				- No explanations
-				- Max 8 tags
-				- Each tag should be 1–4 words
-				- Focus on teams, players, venue, match type, conditions
+        WEBSITE FOCUS:
+        - match previews
+        - fantasy team suggestions
+        - pitch & weather insights
+        - safe picks vs risky picks
+        - captain / vice-captain choices
 
-				Content:
-				""" + content;
+        TAG COUNT:
+        - return 6 to 8 tags only
 
-		String response = callOpenAi(prompt);
+        OUTPUT FORMAT:
+        - lowercase
+        - slug style (use hyphens)
+        - short (1–3 words max)
+        - comma separated only
+        - no hashtags
+        - no numbers
+        - no explanations
+        - no quotes
 
-		return parseTags(response);
-	}
+        DO NOT GENERATE:
+        - player names
+        - match records / history
+        - statistics
+        - betting or gambling terms
+        - generic words like: cricket, match, sports, article
+
+        ALLOWED TAG CATEGORIES ONLY:
+
+        1) venue name
+           (example: wankhede-stadium, eden-gardens)
+
+        2) home team name
+           (example: india, australia, chennai-super-kings)
+
+        3) away team name
+           same format as above
+
+        4) series or tournament name
+           (example: world-cup, asia-cup, ipl)
+
+        5) fantasy / dream11 strategy or content type
+           (example: fantasy-tips, captain-picks, safe-picks, pitch-report, weather-report)
+
+        Example output format:
+        wankhede-stadium, india, australia, world-cup, fantasy-tips, captain-picks, pitch-report
+
+        Now generate tags for this content:
+
+        """ + content;
+
+    String response = callOpenAi(prompt);
+
+    return parseTags(response);
+}
 
 	/**
 	 * Cleans and normalizes OpenAI output
@@ -685,6 +726,36 @@ public class OpenApiServiceImpl implements OpenApiService {
 		}
 
 		return tags;
+	}
+	public String generateVenueDescription(JsonNode venueInfo, JsonNode statsInfo) {
+
+		String prompt = """
+				You are a professional cricket content writer.
+
+				TASK:
+				Write an engaging and informative venue description using the data below.
+
+				GUIDELINES:
+				1. Include key details such as:
+				   - Location (city, country)
+				   - Capacity
+				   - Establishment year
+				   - Pitch characteristics
+				   - Notable matches or events hosted
+				2. Integrate relevant statistics naturally
+				3. Keep tone neutral and informative
+				4. Avoid promotional language
+
+				STYLE:
+				- Clear and engaging
+				- Professional and neutral
+				- SEO-friendly
+				- Suitable for public sports platforms
+
+				VENUE DATA:
+				""" + venueInfo + "\n\nVENUE STATS:\n" + statsInfo;
+
+		return callOpenAi(prompt);
 	}
 
 }

@@ -76,5 +76,11 @@ public class SportsApiConfig {
 	public String getBowlingStatsUrl(int playerId) {
 		return baseUrl.get("player-bowling-stats").replace("{playerId}", String.valueOf(playerId));
 	}
+	public String getVenueInfo(int venueId) {
+		return baseUrl.get("venue-info").replace("{venueId}", String.valueOf(venueId));
+	}
+	public String getVenueStats(int venueId) {
+		return baseUrl.get("venue-stats").replace("{venueId}", String.valueOf(venueId));
+	}
 
 }

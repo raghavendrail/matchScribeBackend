@@ -56,5 +56,12 @@ public class SportsApiClient {
 	public String getPlayerBowlingStats(int playerId) {
 		return callSportsApi(props.getBowlingStatsUrl(playerId));
 	}
+	
+	public String getVenueInfo(int venueId) {
+		return callSportsApi(props.getVenueInfo(venueId));
+	}
+	public String getVenueStats(int venueId) {
+		return callSportsApi(props.getVenueStats(venueId));
+	}
 
 }
