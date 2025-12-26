@@ -36,6 +36,10 @@ public class Match {
     // DB: match_id integer
     @Column(name = "match_id")
     private Long matchId;
+    
+    @Column(name="format_sl")
+  
+    private Long formatSl;
 
     // DB: match_desc character varying(100)
     @Column(name = "match_desc", length = 100)
@@ -99,6 +103,7 @@ public class Match {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+    
 
     // ---------------------------
     // Constructors
@@ -131,6 +136,8 @@ public class Match {
 
     public Long getMatchId() { return matchId; }
     public void setMatchId(Long matchId) { this.matchId = matchId; }
+    public Long getFormatSl() { return formatSl; }
+    public void setFormatSl(Long formatSl) { this.formatSl = formatSl; }
 
     public String getMatchDesc() { return matchDesc; }
     public void setMatchDesc(String matchDesc) { this.matchDesc = matchDesc; }

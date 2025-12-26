@@ -36,6 +36,7 @@ import com.matchscribe.matchscribe_backend.entity.enums.PlayerRoleType;
 import com.matchscribe.matchscribe_backend.integration.sportsapi.SportsApiClient;
 import com.matchscribe.matchscribe_backend.repository.BattingStatsRepository;
 import com.matchscribe.matchscribe_backend.repository.BowlingStatsRepository;
+import com.matchscribe.matchscribe_backend.repository.FormatsRepository;
 import com.matchscribe.matchscribe_backend.repository.LeagueRepository;
 import com.matchscribe.matchscribe_backend.repository.MatchRepository;
 import com.matchscribe.matchscribe_backend.repository.PlayersRepository;
@@ -49,6 +50,7 @@ import com.matchscribe.matchscribe_backend.service.OpenApiService;
 import com.matchscribe.matchscribe_backend.service.TeamService;
 import com.matchscribe.matchscribe_backend.util.ImportResult;
 import com.matchscribe.matchscribe_backend.util.SlugUtil;
+import com.matchscribe.matchscribe_backend.entity.Formats;
 
 @Service
 public class MatchServiceImpl implements MatchService {
@@ -68,13 +70,13 @@ public class MatchServiceImpl implements MatchService {
 	private final BattingStatsRepository battingStatsRepository;
 	private final BowlingStatsRepository bowlingStatsRepository;
 	private final OpenApiService openApiService;
-
+	private final FormatsRepository formatsRepository;
 	public MatchServiceImpl(SportsApiClient sportsApiClient, ObjectMapper objectMapper,
 			LeagueRepository leagueRepository, TeamRepository teamRepository, VenueRepository venueRepository,
 			MatchRepository matchRepository, SeriesRepository seriesRepository, TeamService teamService,
 			TeamPlayersRepository teamPlayersRepository, PlayersRepository playersRepository,
 			BattingStatsRepository battingStatsRepository, BowlingStatsRepository bowlingStatsRepository,
-			OpenApiService openAiService, VenueStatsRepository venueStatsRepository) {
+			OpenApiService openAiService, VenueStatsRepository venueStatsRepository, FormatsRepository formatsRepository) {
 		this.sportsApiClient = sportsApiClient;
 		this.objectMapper = objectMapper;
 		this.leagueRepository = leagueRepository;
@@ -89,6 +91,7 @@ public class MatchServiceImpl implements MatchService {
 		this.bowlingStatsRepository = bowlingStatsRepository;
 		this.openApiService = openAiService;
 		this.venueStatsRepository = venueStatsRepository;
+		this.formatsRepository = formatsRepository;
 	}
 
 	@Override
@@ -200,6 +203,9 @@ public class MatchServiceImpl implements MatchService {
 		if (!team1Ok || !team2Ok) {
 			throw new RuntimeException("TEAM_PLAYER_IMPORT_FAILED matchId=" + matchId);
 		}
+		String matchFormat = info.path("matchFormat").asText();
+
+		Formats format = createOrGetFormat(matchFormat);
 
 		// 🔹 ALWAYS save match
 		Match match = new Match();
@@ -214,6 +220,7 @@ public class MatchServiceImpl implements MatchService {
 		match.setMatchId(matchId);
 		match.setStatus(MatchStatus.scheduled.toString());
 		match.setResultType(MatchResultType.unknown.toString());
+		match.setFormatSl(format.getId());
 		match.setSlug(SlugUtil
 				.toSlug(team1.getTeamName() + " vs " + team2.getTeamName() + " " + info.path("startDate").asText()));
 		matchRepository.saveAndFlush(match);
@@ -269,7 +276,8 @@ public class MatchServiceImpl implements MatchService {
 
 	private Series getOrCreateSeries(JsonNode wrapper, League league, ImportResult result) {
 		long seriesId = wrapper.path("seriesId").asLong();
-
+		String slug = SlugUtil.toSlug(wrapper.path("seriesName").asText());
+		String description = openApiService.generateSeriesDescription(slug);
 		try {
 			return seriesRepository.findBySeriesId(seriesId).orElseGet(() -> {
 				Series s = new Series();
@@ -278,6 +286,7 @@ public class MatchServiceImpl implements MatchService {
 				s.setLeagueSl(league.getSl());
 				s.setInsertBy(LocalDateTime.now());
 				s.setSlug(SlugUtil.toSlug(wrapper.path("seriesName").asText()));
+				s.setDescription(description);
 				return seriesRepository.saveAndFlush(s);
 			});
 		} catch (Exception ex) {
@@ -910,5 +919,38 @@ public class MatchServiceImpl implements MatchService {
 		}
 		return Double.parseDouble(val);
 	}
+	public class SlugUtil {
+
+	    public static String toSlug(String value) {
+	        return value.toLowerCase()
+	                .replaceAll("[^a-z0-9]+", "-")
+	                .replaceAll("(^-|-$)", "");
+	    }
+	}
+	
+	public Formats createOrGetFormat(String formatName) {
+
+	    String slug = SlugUtil.toSlug(formatName);
+
+	    return formatsRepository.findBySlug(slug)
+	            .orElseGet(() -> {
+
+	                // generate description only when inserting new
+	                String description =
+	                        openApiService.generateFormatDescription(formatName);
+
+	                Formats format = new Formats();
+	                format.setName(formatName);
+	                format.setSlug(slug);
+	                format.setDescription(description);
+	                format.setIsActive(true);
+	                format.setCreatedAt(LocalDateTime.now());
+	                format.setUpdatedAt(LocalDateTime.now());
+
+	                return formatsRepository.save(format);
+	            });
+	}
+
+
 
 }

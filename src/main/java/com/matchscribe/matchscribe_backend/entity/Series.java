@@ -43,6 +43,8 @@ public class Series {
 
 	@Column(name = "update_by")
 	private LocalDateTime updateBy;
+	@Column(columnDefinition = "TEXT")
+	private String description;
 
 	// getter and setter
 	public Long getSl() {
@@ -101,6 +103,12 @@ public class Series {
 
 	public void setSlug(String slug) {
 		this.slug = slug;
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
 	}
 
 	@PrePersist

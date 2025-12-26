@@ -757,5 +757,63 @@ public List<String> generateTags(String content) {
 
 		return callOpenAi(prompt);
 	}
+	@Override
+	public String generateFormatDescription(String format) {
+
+		String prompt = """
+				You are a professional cricket content writer.
+
+				TASK:
+				Write a clear and concise description of the cricket format using the data below.
+
+				GUIDELINES:
+				1. Explain key aspects such as:
+				   - Match duration
+				   - Number of overs
+				   - Fielding restrictions
+				   - Unique rules or features
+				2. Keep tone neutral and informative
+				3. Avoid jargon; make it accessible for casual readers
+
+				STYLE:
+				- Clear and concise
+				- Professional and neutral
+				- SEO-friendly
+				- Suitable for public sports platforms
+
+				FORMAT DATA:
+				""" + format;
+
+		return callOpenAi(prompt);
+	}
+	@Override
+	public String generateSeriesDescription(String slug) {
+
+		String prompt = """
+				You are a professional cricket content writer.
+
+				TASK:
+				Write an engaging and informative series description using the data below.
+
+				GUIDELINES:
+				1. Include key details such as:
+				   - Participating teams
+				   - Match format
+				   - Schedule and venues
+				   - Significance of the series
+				2. Keep tone neutral and informative
+				3. Avoid promotional language
+
+				STYLE:
+				- Clear and engaging
+				- Professional and neutral
+				- SEO-friendly
+				- Suitable for public sports platforms
+
+				SERIES DATA:
+				""" + slug;
+
+		return callOpenAi(prompt);
+	}
 
 }

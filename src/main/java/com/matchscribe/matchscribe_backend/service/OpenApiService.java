@@ -34,6 +34,11 @@ public interface OpenApiService {
 	String generateFantasyTips(String matchPayload);
 
 	String generateFinalVerdict(String matchPayload);
+	
 	String generateVenueDescription(JsonNode venueInfo, JsonNode statsInfo);
+	
+	String generateFormatDescription(String formatName);
+	
+	String generateSeriesDescription(String slug);
 
 }

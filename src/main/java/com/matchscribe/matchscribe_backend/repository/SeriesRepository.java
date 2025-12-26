@@ -1,5 +1,6 @@
 package com.matchscribe.matchscribe_backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,6 @@ public interface SeriesRepository extends JpaRepository<Series, Long> {
 	Optional<Series> findBySl(Long seriesId);
 
 	String findNameBySl(Long seriesId);
+	Optional<Series> findBySlug(String slug);
+	List<Series> findAll();
 }
