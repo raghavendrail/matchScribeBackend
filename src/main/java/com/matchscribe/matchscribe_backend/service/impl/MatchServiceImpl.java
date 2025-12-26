@@ -29,6 +29,7 @@ import com.matchscribe.matchscribe_backend.entity.Series;
 import com.matchscribe.matchscribe_backend.entity.Team;
 import com.matchscribe.matchscribe_backend.entity.TeamPlayers;
 import com.matchscribe.matchscribe_backend.entity.Venue;
+import com.matchscribe.matchscribe_backend.entity.VenueStats;
 import com.matchscribe.matchscribe_backend.entity.enums.MatchResultType;
 import com.matchscribe.matchscribe_backend.entity.enums.MatchStatus;
 import com.matchscribe.matchscribe_backend.entity.enums.PlayerRoleType;
@@ -42,6 +43,7 @@ import com.matchscribe.matchscribe_backend.repository.SeriesRepository;
 import com.matchscribe.matchscribe_backend.repository.TeamPlayersRepository;
 import com.matchscribe.matchscribe_backend.repository.TeamRepository;
 import com.matchscribe.matchscribe_backend.repository.VenueRepository;
+import com.matchscribe.matchscribe_backend.repository.VenueStatsRepository;
 import com.matchscribe.matchscribe_backend.service.MatchService;
 import com.matchscribe.matchscribe_backend.service.OpenApiService;
 import com.matchscribe.matchscribe_backend.service.TeamService;
@@ -57,6 +59,7 @@ public class MatchServiceImpl implements MatchService {
 	private final LeagueRepository leagueRepository;
 	private final TeamRepository teamRepository;
 	private final VenueRepository venueRepository;
+	private final VenueStatsRepository venueStatsRepository;
 	private final MatchRepository matchRepository;
 	private final SeriesRepository seriesRepository;
 	private final TeamService teamService;
@@ -71,7 +74,7 @@ public class MatchServiceImpl implements MatchService {
 			MatchRepository matchRepository, SeriesRepository seriesRepository, TeamService teamService,
 			TeamPlayersRepository teamPlayersRepository, PlayersRepository playersRepository,
 			BattingStatsRepository battingStatsRepository, BowlingStatsRepository bowlingStatsRepository,
-			OpenApiService openAiService) {
+			OpenApiService openAiService, VenueStatsRepository venueStatsRepository) {
 		this.sportsApiClient = sportsApiClient;
 		this.objectMapper = objectMapper;
 		this.leagueRepository = leagueRepository;
@@ -85,6 +88,7 @@ public class MatchServiceImpl implements MatchService {
 		this.battingStatsRepository = battingStatsRepository;
 		this.bowlingStatsRepository = bowlingStatsRepository;
 		this.openApiService = openAiService;
+		this.venueStatsRepository = venueStatsRepository;
 	}
 
 	@Override
@@ -282,73 +286,80 @@ public class MatchServiceImpl implements MatchService {
 		}
 	}
 
-	private Venue getOrCreateVenue(JsonNode venueNode) throws Exception {
+	private Venue getOrCreateVenue(JsonNode venueNode) {
+		try {
 
-		long venueId = venueNode.path("id").asLong();
+			long venueId = venueNode.path("id").asLong();
 
-		Optional<Venue> existing = venueRepository.findByVenueId(venueId);
-		if (existing.isPresent()) {
-			return existing.get();
-		}
-
-		// ---- 1) Call APIs ----
-		String venueJson = sportsApiClient.getVenueInfo((int) venueId);
-		String venueStatsJson = sportsApiClient.getVenueStats((int) venueId);
-
-		// ---- 2) Parse JSON directly ----
-		JsonNode venueApi = objectMapper.readTree(venueJson);
-		JsonNode statsApi = objectMapper.readTree(venueStatsJson);
-
-		// ---- 3) Build Venue ----
-		Venue venue = new Venue();
-		venue.setVenueId(venueId);
-		venue.setGround(venueApi.path("ground").asText(null));
-		venue.setCity(venueApi.path("city").asText(null));
-		venue.setCountry(venueApi.path("country").asText(null));
-
-		venue.setSlug(generateSlug(venueApi.path("ground").asText(""), venueApi.path("city").asText("")));
-
-		venue.setTimezone(venueApi.path("timezone").asText(null));
-		venue.setCapacity(parseCapacity(venueApi.path("capacity").asText(null)));
-		venue.setEnds(venueApi.path("ends").asText(null));
-		venue.setHomeTeam(venueApi.path("homeTeam").asText(null));
-		venue.setImageUrl(venueApi.path("imageUrl").asText(null));
-		venue.setImageId(venueApi.path("imageId").asText(null));
-
-		// ---- 4) Optional AI Summary ----
-		venue.setDescription(openApiService.generateVenueDescription(venueApi, statsApi));
-
-		venueRepository.save(venue);
-
-		// ---- 5) Save stats ----
-		JsonNode statsArray = statsApi.path("venueStats");
-
-		if (statsArray.isArray()) {
-			for (JsonNode statNode : statsArray) {
-
-				String key = statNode.path("key").asText();
-				String value = statNode.path("value").asText();
-
-				VenueStats vs = new VenueStats();
-				vs.setVenue(venue);
-				vs.setKey(key);
-				vs.setValue(value);
-
-				venueStatsRepository.save(vs);
+			Optional<Venue> existing = venueRepository.findByVenueId(venueId);
+			if (existing.isPresent()) {
+				return existing.get();
 			}
+
+			// ---- 1) Call APIs ----
+			String venueJson = sportsApiClient.getVenueInfo((int) venueId);
+			String venueStatsJson = sportsApiClient.getVenueStats((int) venueId);
+
+			// ---- 2) Parse JSON directly ----
+			JsonNode venueApi = objectMapper.readTree(venueJson);
+			JsonNode statsApi = objectMapper.readTree(venueStatsJson);
+
+			// ---- 3) Build Venue ----
+			Venue venue = new Venue();
+			venue.setVenueId(venueId);
+			venue.setGround(venueApi.path("ground").asText(null));
+			venue.setCity(venueApi.path("city").asText(null));
+			venue.setCountry(venueApi.path("country").asText(null));
+
+			venue.setSlug(generateSlug(venueApi.path("ground").asText(""), venueApi.path("city").asText("")));
+
+			venue.setTimezone(venueApi.path("timezone").asText(null));
+			venue.setCapacity(parseCapacity(venueApi.path("capacity").asText(null)));
+			venue.setEnds(venueApi.path("ends").asText(null));
+			venue.setHomeTeam(venueApi.path("homeTeam").asText(null));
+			venue.setImageUrl(venueApi.path("imageUrl").asText(null));
+			venue.setImageId(venueApi.path("imageId").asText(null));
+
+			// ---- 4) Optional AI Summary ----
+			venue.setDescription(openApiService.generateVenueDescription(venueApi, statsApi));
+
+			venueRepository.save(venue);
+
+			// ---- 5) Save stats ----
+			JsonNode statsArray = statsApi.path("venueStats");
+
+			if (statsArray.isArray()) {
+				for (JsonNode statNode : statsArray) {
+
+					String key = statNode.path("key").asText();
+					String value = statNode.path("value").asText();
+
+					VenueStats vs = new VenueStats();
+					vs.setVenueSl(venue.getSl());
+					vs.setKey(key);
+					vs.setValue(value);
+
+					venueStatsRepository.save(vs);
+				}
+			}
+
+			return venue;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to parse or save venue data", e);
 		}
-
-		return venue;
 	}
+
 	private Integer parseCapacity(String capacity) {
-	    if (capacity == null || capacity.isBlank()) return null;
-	    return Integer.parseInt(capacity.replaceAll(",", "").trim());
-	}
-	private String generateSlug(String ground, String city) {
-	    String text = (ground + "-" + city).toLowerCase();
-	    return text.replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+		if (capacity == null || capacity.isBlank()) {
+			return null;
+		}
+		return Integer.parseInt(capacity.replaceAll(",", "").trim());
 	}
 
+	private String generateSlug(String ground, String city) {
+		String text = (ground + "-" + city).toLowerCase();
+		return text.replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+	}
 
 	private Team getOrCreateTeam(JsonNode teamNode, Long leagueSl) {
 		long teamId = teamNode.path("teamId").asLong();
