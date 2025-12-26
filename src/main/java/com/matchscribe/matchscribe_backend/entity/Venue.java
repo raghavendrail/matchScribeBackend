@@ -1,7 +1,16 @@
 package com.matchscribe.matchscribe_backend.entity;
 
-import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "venues", uniqueConstraints = { @UniqueConstraint(columnNames = { "venue_id" }),
@@ -56,10 +65,10 @@ public class Venue {
 	private String description;
 
 	// ---- Geo ----
-	@Column(name = "latitude", precision = 9, scale = 6)
+	@Column(name = "latitude")
 	private Double latitude;
 
-	@Column(name = "longitude", precision = 9, scale = 6)
+	@Column(name = "longitude")
 	private Double longitude;
 
 	// ---- Status ----
@@ -97,112 +106,147 @@ public class Venue {
 	public Long getVenueId() {
 		return venueId;
 	}
+
 	public void setVenueId(Long venueId) {
 		this.venueId = venueId;
 	}
+
 	public String getGround() {
 		return ground;
 	}
+
 	public void setGround(String ground) {
 		this.ground = ground;
 	}
+
 	public String getCity() {
 		return city;
 	}
+
 	public void setCity(String city) {
 		this.city = city;
 	}
+
 	public String getCountry() {
 		return country;
 	}
+
 	public void setCountry(String country) {
 		this.country = country;
 	}
+
 	public String getSlug() {
 		return slug;
 	}
+
 	public void setSlug(String slug) {
 		this.slug = slug;
 	}
+
 	public String getTimezone() {
 		return timezone;
 	}
+
 	public void setTimezone(String timezone) {
 		this.timezone = timezone;
 	}
+
 	public Integer getCapacity() {
 		return capacity;
 	}
+
 	public void setCapacity(Integer capacity) {
 		this.capacity = capacity;
 	}
+
 	public String getEnds() {
 		return ends;
 	}
+
 	public void setEnds(String ends) {
 		this.ends = ends;
 	}
+
 	public String getHomeTeam() {
 		return homeTeam;
 	}
+
 	public void setHomeTeam(String homeTeam) {
 		this.homeTeam = homeTeam;
 	}
+
 	public String getImageUrl() {
 		return imageUrl;
 	}
+
 	public void setImageUrl(String imageUrl) {
 		this.imageUrl = imageUrl;
 	}
+
 	public String getImageId() {
 		return imageId;
 	}
+
 	public void setImageId(String imageId) {
 		this.imageId = imageId;
 	}
+
 	public Short getEstablishedYear() {
 		return establishedYear;
 	}
+
 	public void setEstablishedYear(Short establishedYear) {
 		this.establishedYear = establishedYear;
 	}
+
 	public String getPitchType() {
 		return pitchType;
 	}
+
 	public void setPitchType(String pitchType) {
 		this.pitchType = pitchType;
 	}
+
 	public String getDescription() {
 		return description;
 	}
+
 	public void setDescription(String description) {
 		this.description = description;
 	}
+
 	public Double getLatitude() {
 		return latitude;
 	}
+
 	public void setLatitude(Double latitude) {
 		this.latitude = latitude;
 	}
+
 	public Double getLongitude() {
 		return longitude;
 	}
+
 	public void setLongitude(Double longitude) {
 		this.longitude = longitude;
 	}
+
 	public Boolean getIsActive() {
 		return isActive;
 	}
+
 	public void setIsActive(Boolean isActive) {
 		this.isActive = isActive;
 	}
+
 	public OffsetDateTime getCreatedAt() {
 		return createdAt;
 	}
+
 	public OffsetDateTime getUpdatedAt() {
 		return updatedAt;
 	}
-	
+
 	@PrePersist
 	protected void onCreate() {
 		createdAt = OffsetDateTime.now();

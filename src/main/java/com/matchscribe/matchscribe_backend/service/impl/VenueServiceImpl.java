@@ -2,6 +2,8 @@ package com.matchscribe.matchscribe_backend.service.impl;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.matchscribe.matchscribe_backend.dto.match.VenueDto;
 import com.matchscribe.matchscribe_backend.entity.Venue;
 import com.matchscribe.matchscribe_backend.entity.VenueStats;
@@ -9,6 +11,7 @@ import com.matchscribe.matchscribe_backend.repository.VenueRepository;
 import com.matchscribe.matchscribe_backend.repository.VenueStatsRepository;
 import com.matchscribe.matchscribe_backend.service.VenueService;
 
+@Service
 public class VenueServiceImpl implements VenueService {
 	private final VenueRepository venueRepository;
 	private final VenueStatsRepository venueStatsRepository;
