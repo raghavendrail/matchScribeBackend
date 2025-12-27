@@ -1,5 +1,6 @@
 package com.matchscribe.matchscribe_backend.service.impl;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -191,5 +192,15 @@ public class TeamServiceImpl implements TeamService {
 		case "BOWLER" -> "BOWLER";
 		default -> apiRole.replace(" ", "_").toUpperCase();
 		};
+	}
+
+	@Override
+	public List<Team> getAllTeams() {
+		return teamRepository.findAll();
+	}
+
+	@Override
+	public Team getTeamBySlug(String slug) {
+		return teamRepository.findBySlug(slug);
 	}
 }

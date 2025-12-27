@@ -631,73 +631,74 @@ public class OpenApiServiceImpl implements OpenApiService {
 			return tags.toArray(new String[0]);
 		}).block();
 	}
-public List<String> generateTags(String content) {
 
-    if (content == null || content.isBlank()) {
-        return List.of();
-    }
+	public List<String> generateTags(String content) {
 
-    String prompt = """
-        You generate SEO-friendly NAVIGATION TAGS for a cricket match prediction website.
+		if (content == null || content.isBlank()) {
+			return List.of();
+		}
 
-        Tags are NOT for decoration. 
-        They must help users navigate to specific pages.
+		String prompt = """
+				You generate SEO-friendly NAVIGATION TAGS for a cricket match prediction website.
 
-        WEBSITE FOCUS:
-        - match previews
-        - fantasy team suggestions
-        - pitch & weather insights
-        - safe picks vs risky picks
-        - captain / vice-captain choices
+				Tags are NOT for decoration.
+				They must help users navigate to specific pages.
 
-        TAG COUNT:
-        - return 6 to 8 tags only
+				WEBSITE FOCUS:
+				- match previews
+				- fantasy team suggestions
+				- pitch & weather insights
+				- safe picks vs risky picks
+				- captain / vice-captain choices
 
-        OUTPUT FORMAT:
-        - lowercase
-        - slug style (use hyphens)
-        - short (1–3 words max)
-        - comma separated only
-        - no hashtags
-        - no numbers
-        - no explanations
-        - no quotes
+				TAG COUNT:
+				- return 6 to 8 tags only
 
-        DO NOT GENERATE:
-        - player names
-        - match records / history
-        - statistics
-        - betting or gambling terms
-        - generic words like: cricket, match, sports, article
+				OUTPUT FORMAT:
+				- lowercase
+				- slug style (use hyphens)
+				- short (1–3 words max)
+				- comma separated only
+				- no hashtags
+				- no numbers
+				- no explanations
+				- no quotes
 
-        ALLOWED TAG CATEGORIES ONLY:
+				DO NOT GENERATE:
+				- player names
+				- match records / history
+				- statistics
+				- betting or gambling terms
+				- generic words like: cricket, match, sports, article
 
-        1) venue name
-           (example: wankhede-stadium, eden-gardens)
+				ALLOWED TAG CATEGORIES ONLY:
 
-        2) home team name
-           (example: india, australia, chennai-super-kings)
+				1) venue name
+				   (example: wankhede-stadium, eden-gardens)
 
-        3) away team name
-           same format as above
+				2) home team name
+				   (example: india, australia, chennai-super-kings)
 
-        4) series or tournament name
-           (example: world-cup, asia-cup, ipl)
+				3) away team name
+				   same format as above
 
-        5) fantasy / dream11 strategy or content type
-           (example: fantasy-tips, captain-picks, safe-picks, pitch-report, weather-report)
+				4) series or tournament name
+				   (example: world-cup, asia-cup, ipl)
 
-        Example output format:
-        wankhede-stadium, india, australia, world-cup, fantasy-tips, captain-picks, pitch-report
+				5) fantasy / dream11 strategy or content type
+				   (example: fantasy-tips, captain-picks, safe-picks, pitch-report, weather-report)
 
-        Now generate tags for this content:
+				Example output format:
+				wankhede-stadium, india, australia, world-cup, fantasy-tips, captain-picks, pitch-report
 
-        """ + content;
+				Now generate tags for this content:
 
-    String response = callOpenAi(prompt);
+				""" + content;
 
-    return parseTags(response);
-}
+		String response = callOpenAi(prompt);
+
+		return parseTags(response);
+	}
 
 	/**
 	 * Cleans and normalizes OpenAI output
@@ -727,6 +728,8 @@ public List<String> generateTags(String content) {
 
 		return tags;
 	}
+
+	@Override
 	public String generateVenueDescription(JsonNode venueInfo, JsonNode statsInfo) {
 
 		String prompt = """
@@ -757,6 +760,7 @@ public List<String> generateTags(String content) {
 
 		return callOpenAi(prompt);
 	}
+
 	@Override
 	public String generateFormatDescription(String format) {
 
@@ -786,32 +790,46 @@ public List<String> generateTags(String content) {
 
 		return callOpenAi(prompt);
 	}
+
 	@Override
 	public String generateSeriesDescription(String slug) {
 
 		String prompt = """
-				You are a professional cricket content writer.
+								You are a professional cricket journalist and content strategist.
 
-				TASK:
-				Write an engaging and informative series description using the data below.
+				Your task is to generate a high-quality, engaging article for a cricket series
+				that keeps readers interested till the end.
 
-				GUIDELINES:
-				1. Include key details such as:
-				   - Participating teams
-				   - Match format
-				   - Schedule and venues
-				   - Significance of the series
-				2. Keep tone neutral and informative
-				3. Avoid promotional language
+				RULES (MANDATORY):
+				- Return ONLY valid JSON
+				- No HTML
+				- No markdown
+				- No explanations
+				- No extra keys
+				- Write in a natural, engaging, human tone
+				- Avoid repetition
+				- Content must feel premium and informative
 
-				STYLE:
-				- Clear and engaging
-				- Professional and neutral
-				- SEO-friendly
-				- Suitable for public sports platforms
+				JSON FORMAT:
+				{
+				  "hookLine": "string",
+				  "overview": "string",
+				  "playingStyle": "string",
+				  "whyThisSeriesMatters": "string",
+				  "keyHighlights": ["string", "string", "string"],
+				  "fanExperience": "string",
+				  "talentImpact": "string",
+				  "globalRelevance": "string",
+				  "conclusion": "string",
+				  "readingTimeMinutes": number
+				}
 
-				SERIES DATA:
-				""" + slug;
+				SERIES DETAILS:
+				Series Name: {{seriesName}}
+				Country / League: {{leagueName}}
+				Format: {{format}}
+
+								""" + slug;
 
 		return callOpenAi(prompt);
 	}

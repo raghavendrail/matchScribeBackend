@@ -20,12 +20,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.matchscribe.matchscribe_backend.dto.match.MatchDto;
 import com.matchscribe.matchscribe_backend.dto.team.PlayerDto;
+import com.matchscribe.matchscribe_backend.entity.Formats;
 import com.matchscribe.matchscribe_backend.entity.League;
 import com.matchscribe.matchscribe_backend.entity.Match;
 import com.matchscribe.matchscribe_backend.entity.PlayerCareerBattingStats;
 import com.matchscribe.matchscribe_backend.entity.PlayerCareerBowlingStats;
 import com.matchscribe.matchscribe_backend.entity.Players;
 import com.matchscribe.matchscribe_backend.entity.Series;
+import com.matchscribe.matchscribe_backend.entity.SeriesContent;
 import com.matchscribe.matchscribe_backend.entity.Team;
 import com.matchscribe.matchscribe_backend.entity.TeamPlayers;
 import com.matchscribe.matchscribe_backend.entity.Venue;
@@ -40,6 +42,7 @@ import com.matchscribe.matchscribe_backend.repository.FormatsRepository;
 import com.matchscribe.matchscribe_backend.repository.LeagueRepository;
 import com.matchscribe.matchscribe_backend.repository.MatchRepository;
 import com.matchscribe.matchscribe_backend.repository.PlayersRepository;
+import com.matchscribe.matchscribe_backend.repository.SeriesContentRepository;
 import com.matchscribe.matchscribe_backend.repository.SeriesRepository;
 import com.matchscribe.matchscribe_backend.repository.TeamPlayersRepository;
 import com.matchscribe.matchscribe_backend.repository.TeamRepository;
@@ -49,8 +52,6 @@ import com.matchscribe.matchscribe_backend.service.MatchService;
 import com.matchscribe.matchscribe_backend.service.OpenApiService;
 import com.matchscribe.matchscribe_backend.service.TeamService;
 import com.matchscribe.matchscribe_backend.util.ImportResult;
-import com.matchscribe.matchscribe_backend.util.SlugUtil;
-import com.matchscribe.matchscribe_backend.entity.Formats;
 
 @Service
 public class MatchServiceImpl implements MatchService {
@@ -71,12 +72,15 @@ public class MatchServiceImpl implements MatchService {
 	private final BowlingStatsRepository bowlingStatsRepository;
 	private final OpenApiService openApiService;
 	private final FormatsRepository formatsRepository;
+	private final SeriesContentRepository seriesContentRepository;
+
 	public MatchServiceImpl(SportsApiClient sportsApiClient, ObjectMapper objectMapper,
 			LeagueRepository leagueRepository, TeamRepository teamRepository, VenueRepository venueRepository,
 			MatchRepository matchRepository, SeriesRepository seriesRepository, TeamService teamService,
 			TeamPlayersRepository teamPlayersRepository, PlayersRepository playersRepository,
 			BattingStatsRepository battingStatsRepository, BowlingStatsRepository bowlingStatsRepository,
-			OpenApiService openAiService, VenueStatsRepository venueStatsRepository, FormatsRepository formatsRepository) {
+			OpenApiService openAiService, VenueStatsRepository venueStatsRepository,
+			FormatsRepository formatsRepository, SeriesContentRepository seriesContentRepository) {
 		this.sportsApiClient = sportsApiClient;
 		this.objectMapper = objectMapper;
 		this.leagueRepository = leagueRepository;
@@ -92,6 +96,7 @@ public class MatchServiceImpl implements MatchService {
 		this.openApiService = openAiService;
 		this.venueStatsRepository = venueStatsRepository;
 		this.formatsRepository = formatsRepository;
+		this.seriesContentRepository = seriesContentRepository;
 	}
 
 	@Override
@@ -145,6 +150,7 @@ public class MatchServiceImpl implements MatchService {
 					if (series == null) {
 						continue;
 					}
+					createOrUpdateSeriesContent(series);
 
 					JsonNode matches = wrapper.path("matches");
 					if (!matches.isArray()) {
@@ -277,7 +283,8 @@ public class MatchServiceImpl implements MatchService {
 	private Series getOrCreateSeries(JsonNode wrapper, League league, ImportResult result) {
 		long seriesId = wrapper.path("seriesId").asLong();
 		String slug = SlugUtil.toSlug(wrapper.path("seriesName").asText());
-		String description = openApiService.generateSeriesDescription(slug);
+
+		String jsonSeriesContent = openApiService.generateSeriesDescription(slug);
 		try {
 			return seriesRepository.findBySeriesId(seriesId).orElseGet(() -> {
 				Series s = new Series();
@@ -286,7 +293,6 @@ public class MatchServiceImpl implements MatchService {
 				s.setLeagueSl(league.getSl());
 				s.setInsertBy(LocalDateTime.now());
 				s.setSlug(SlugUtil.toSlug(wrapper.path("seriesName").asText()));
-				s.setDescription(description);
 				return seriesRepository.saveAndFlush(s);
 			});
 		} catch (Exception ex) {
@@ -919,38 +925,64 @@ public class MatchServiceImpl implements MatchService {
 		}
 		return Double.parseDouble(val);
 	}
+
 	public class SlugUtil {
 
-	    public static String toSlug(String value) {
-	        return value.toLowerCase()
-	                .replaceAll("[^a-z0-9]+", "-")
-	                .replaceAll("(^-|-$)", "");
-	    }
+		public static String toSlug(String value) {
+			return value.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+		}
 	}
-	
+
 	public Formats createOrGetFormat(String formatName) {
 
-	    String slug = SlugUtil.toSlug(formatName);
+		String slug = SlugUtil.toSlug(formatName);
 
-	    return formatsRepository.findBySlug(slug)
-	            .orElseGet(() -> {
+		return formatsRepository.findBySlug(slug).orElseGet(() -> {
 
-	                // generate description only when inserting new
-	                String description =
-	                        openApiService.generateFormatDescription(formatName);
+			// generate description only when inserting new
+			String description = openApiService.generateFormatDescription(formatName);
 
-	                Formats format = new Formats();
-	                format.setName(formatName);
-	                format.setSlug(slug);
-	                format.setDescription(description);
-	                format.setIsActive(true);
-	                format.setCreatedAt(LocalDateTime.now());
-	                format.setUpdatedAt(LocalDateTime.now());
+			Formats format = new Formats();
+			format.setName(formatName);
+			format.setSlug(slug);
+			format.setDescription(description);
+			format.setIsActive(true);
+			format.setCreatedAt(LocalDateTime.now());
+			format.setUpdatedAt(LocalDateTime.now());
 
-	                return formatsRepository.save(format);
-	            });
+			return formatsRepository.save(format);
+		});
 	}
 
+	public void createOrUpdateSeriesContent(Series series) {
+		try {
+			String aiJson = openApiService.generateSeriesDescription(series.toString());
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode content = mapper.readTree(aiJson);
 
+			SeriesContent sc = new SeriesContent();
+			sc.setSeriesSl(series.getSl());
+			sc.setSeriesSlug(series.getSlug());
+
+			sc.setHookLine(content.path("hookLine").asText());
+			sc.setOverview(content.path("overview").asText());
+			sc.setPlayingStyle(content.path("playingStyle").asText());
+			sc.setWhyThisSeriesMatters(content.path("whyThisSeriesMatters").asText());
+
+			sc.setKeyHighlights(content.path("keyHighlights").toString());
+
+			sc.setFanExperience(content.path("fanExperience").asText());
+			sc.setTalentImpact(content.path("talentImpact").asText());
+			sc.setGlobalRelevance(content.path("globalRelevance").asText());
+			sc.setConclusion(content.path("conclusion").asText());
+			sc.setReadingTimeMinutes((short) content.path("readingTimeMinutes").asInt(3));
+
+			seriesContentRepository.save(sc);
+		} catch (Exception ex) {
+			// Log or handle exception as needed
+			ex.printStackTrace();
+		}
+
+	}
 
 }

@@ -15,4 +15,6 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
 	String findNameBySl(Long teamId);
 
+	Team findBySlug(String slug);
+
 }

@@ -104,9 +104,11 @@ public class Series {
 	public void setSlug(String slug) {
 		this.slug = slug;
 	}
+
 	public String getDescription() {
 		return description;
 	}
+
 	public void setDescription(String description) {
 		this.description = description;
 	}
